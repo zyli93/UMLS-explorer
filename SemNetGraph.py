@@ -17,50 +17,67 @@ import networkx as nx
 import matplotlib.pyplot as plt
 
 # import files of interest
-top_struct = np.genfromtxt('/Users/qinyilong/Desktop/ScAi/SRSTR', dtype = 'unicode', delimiter = '|')
-inherited_struct = np.genfromtxt('/Users/qinyilong/Desktop/ScAi/SRSTRE2', dtype = 'unicode', delimiter = '|')
+srstr = np.genfromtxt('/Users/qinyilong/Desktop/ScAi/SRSTR', dtype = 'unicode', delimiter = '|')
+srstre2 = np.genfromtxt('/Users/qinyilong/Desktop/ScAi/SRSTRE2', dtype = 'unicode', delimiter = '|')
 
 # Delete the last columns because they are empty
-top_struct = np.delete(top_struct, 4, axis = 1)
-inherited_struct = np.delete(inherited_struct, 3, axis = 1)
+srstr = np.delete(srstr, 4, axis = 1)
+srstre2 = np.delete(srstre2, 3, axis = 1)
 
-print("Shape of SRSTR (top node structure): " + str(top_struct.shape))
-print("Shape of SRSTRE2 (inheritance structure): " + str(inherited_struct.shape))
+print("Shape of SRSTR (top node structure): " + str(srstr.shape))
+print("Shape of SRSTRE2 (inheritance structure): " + str(srstre2.shape))
 
 # Partition top node structure according to entries' link status:
 # D = Defined for the Arguments and its children;
 # B = Blocked;
 # DNI = Defined but Not Inherited by the children of the Arguments
 
-top_struct_d = top_struct[top_struct[:, 3] == 'D', :]
-top_struct_b = top_struct[top_struct[:, 3] == 'B', :]
-top_struct_dni = top_struct[top_struct[:, 3] == 'DNI', :]
+srstr_d = srstr[srstr[:, 3] == 'D', :]
+srstr_b = srstr[srstr[:, 3] == 'B', :]
+srstr_dni = srstr[srstr[:, 3] == 'DNI', :]
 
 print("Shapes of top node relationships: ")
-print("Defined: " + str(top_struct_d.shape))
-print("Blocked: " + str(top_struct_b.shape))
-print("Defined but Not Inherited: " + str(top_struct_dni.shape))
+print("Defined: " + str(srstr_d.shape))
+print("Blocked: " + str(srstr_b.shape))
+print("Defined but Not Inherited: " + str(srstr_dni.shape))
 
-top = nx.DiGraph()
-for entry in top_struct_d:
-    if (entry[2] == ''):
+# Create directed graphs for SRSTR and SRSTRE2
+srstr_graph = nx.DiGraph()
+for entry in srstr:
+    # Disconnect 4 topmost nodes from ''
+    if entry[2] == '':
         continue
     else:
-        top.add_node(entry[0])
-        top.add_node(entry[2])
-        top.add_edge(entry[0], entry[2], relation = entry[1])
+        srstr_graph.add_node(entry[0])
+        srstr_graph.add_node(entry[2])
+        srstr_graph.add_edge(entry[0], entry[2], relation = entry[1])
 
-print("Number of nodes: " + str(top.number_of_nodes()))
-print("Number of edges: " + str(top.number_of_edges()))
+srstre2_graph = nx.DiGraph()
+for entry in srstre2:
+    srstre2_graph.add_node(entry[0])
+    srstre2_graph.add_node(entry[2])
+    srstre2_graph.add_edge(entry[0], entry[2], relation = entry[1])
+
+# Print number of nodes and edges
+# We can see number of nodes present in SRSTR and SRSTRE2 are the same.
+print("Number of nodes for SRSTR: " + str(srstr_graph.number_of_nodes()))
+print("Number of edges for SRSTR: " + str(srstr_graph.number_of_edges()))
+print("Number of nodes for SRSTRE2: " + str(srstre2_graph.number_of_nodes()))
+print("Number of edges for SRSTRE2: " + str(srstre2_graph.number_of_edges()))
 
 # In case lists of nodes and edges are needed
-top_nodes = list(top.nodes)
-top_edges = list(top.edges)
+srstr_nodes = list(srstr_graph.nodes)
+srstr_edges = list(srstr_graph.edges)
+srstre2_nodes = list(srstre2_graph.nodes)
+srstre2_edges = list(srstre2_graph.edges)
 
-options = {
-    'node_color': 'red',
-    'node_size': 5,
-}
-
-nx.draw(top, **options, with_labels=True)
-plt.show()
+# options = {
+#     'node_color': 'red',
+#     'node_size': 5,
+#     'with_labels': True,
+#     'alpha': 0.5,
+#     'edge_color': 'blue',
+# }
+#
+# nx.draw(srstr_graph, **options)
+# plt.show()
