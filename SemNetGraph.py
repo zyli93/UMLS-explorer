@@ -41,17 +41,26 @@ print("Defined: " + str(top_struct_d.shape))
 print("Blocked: " + str(top_struct_b.shape))
 print("Defined but Not Inherited: " + str(top_struct_dni.shape))
 
-top = nx.Graph()
+top = nx.DiGraph()
 for entry in top_struct_d:
-    top.add_node(entry[0])
-    top.add_node(entry[2])
-    top.add_edge(entry[0], entry[2], rel = entry[1])
+    if (entry[2] == ''):
+        continue
+    else:
+        top.add_node(entry[0])
+        top.add_node(entry[2])
+        top.add_edge(entry[0], entry[2], relation = entry[1])
 
-print(top.number_of_nodes())
+print("Number of nodes: " + str(top.number_of_nodes()))
+print("Number of edges: " + str(top.number_of_edges()))
+
+# In case lists of nodes and edges are needed
+top_nodes = list(top.nodes)
+top_edges = list(top.edges)
 
 options = {
     'node_color': 'red',
     'node_size': 5,
 }
+
 nx.draw(top, **options, with_labels=True)
 plt.show()
