@@ -24,8 +24,8 @@ srstre2 = np.genfromtxt('/Users/qinyilong/Desktop/ScAi/SRSTRE2', dtype = 'unicod
 srstr = np.delete(srstr, 4, axis = 1)
 srstre2 = np.delete(srstre2, 3, axis = 1)
 
-print("Shape of SRSTR (top node structure): " + str(srstr.shape))
-print("Shape of SRSTRE2 (inheritance structure): " + str(srstre2.shape))
+print("Shape of SRSTR (distance-1): " + str(srstr.shape))
+print("Shape of SRSTRE2 (fully inherited): " + str(srstre2.shape))
 
 # Partition top node structure according to entries' link status:
 # D = Defined for the Arguments and its children;
@@ -36,27 +36,39 @@ srstr_d = srstr[srstr[:, 3] == 'D', :]
 srstr_b = srstr[srstr[:, 3] == 'B', :]
 srstr_dni = srstr[srstr[:, 3] == 'DNI', :]
 
-print("Shapes of top node relationships: ")
+print("Shapes of SRSTR relationships: ")
 print("Defined: " + str(srstr_d.shape))
 print("Blocked: " + str(srstr_b.shape))
 print("Defined but Not Inherited: " + str(srstr_dni.shape))
 
-# Create directed graphs for SRSTR and SRSTRE2
-srstr_graph = nx.DiGraph()
-for entry in srstr:
+# Create multi-directed-graphs for SRSTR and SRSTRE2
+srstr_graph = nx.MultiDiGraph()
+for entry in srstr_d:
     # Disconnect 4 topmost nodes from ''
     if entry[2] == '':
         continue
     else:
-        srstr_graph.add_node(entry[0])
-        srstr_graph.add_node(entry[2])
         srstr_graph.add_edge(entry[0], entry[2], relation = entry[1])
 
-srstre2_graph = nx.DiGraph()
+srstre2_graph = nx.MultiDiGraph()
 for entry in srstre2:
-    srstre2_graph.add_node(entry[0])
-    srstre2_graph.add_node(entry[2])
-    srstre2_graph.add_edge(entry[0], entry[2], relation = entry[1])
+    # Disconnect 4 topmost nodes from ''
+    if entry[2] == '':
+        continue
+    else:
+        srstre2_graph.add_edge(entry[0], entry[2], relation = entry[1])
+
+# Visualize SRSTR
+options = {
+    'node_color': 'red',
+    'node_size': 5,
+    'with_labels': True,
+    'alpha': 0.5,
+    'edge_color': 'blue',
+}
+
+nx.draw(srstr_graph, **options)
+plt.show()
 
 # Print number of nodes and edges
 # We can see number of nodes present in SRSTR and SRSTRE2 are the same.
@@ -71,13 +83,6 @@ srstr_edges = list(srstr_graph.edges)
 srstre2_nodes = list(srstre2_graph.nodes)
 srstre2_edges = list(srstre2_graph.edges)
 
-# options = {
-#     'node_color': 'red',
-#     'node_size': 5,
-#     'with_labels': True,
-#     'alpha': 0.5,
-#     'edge_color': 'blue',
-# }
-#
-# nx.draw(srstr_graph, **options)
-# plt.show()
+# SRSTR ans SRSTRE2 have the same nodes, which make up the entirety of Semantic Types
+assert(srstr_nodes.sort() == srstre2_nodes.sort())
+sem_types = srstr_nodes
