@@ -17,72 +17,106 @@ import networkx as nx
 import matplotlib.pyplot as plt
 
 # import files of interest
-srstr = np.genfromtxt('/Users/qinyilong/Desktop/ScAi/SRSTR', dtype = 'unicode', delimiter = '|')
-srstre2 = np.genfromtxt('/Users/qinyilong/Desktop/ScAi/SRSTRE2', dtype = 'unicode', delimiter = '|')
+srstr = np.genfromtxt('/Users/qinyilong/Desktop/ScAi/SRSTR', dtype='unicode', delimiter='|')
+srstre2 = np.genfromtxt('/Users/qinyilong/Desktop/ScAi/SRSTRE2', dtype='unicode', delimiter='|')
 
 # Delete the last columns because they are empty
-srstr = np.delete(srstr, 4, axis = 1)
-srstre2 = np.delete(srstre2, 3, axis = 1)
+srstr = np.delete(srstr, 4, axis=1)
+srstre2 = np.delete(srstre2, 3, axis=1)
 
-print("Shape of SRSTR (distance-1): " + str(srstr.shape))
-print("Shape of SRSTRE2 (fully inherited): " + str(srstre2.shape))
+print("Shape of SRSTR file (distance-1): " + str(srstr.shape))
+print("Shape of SRSTRE2 file (fully inherited): " + str(srstre2.shape))
 
-# Partition top node structure according to entries' link status:
+# Split the data into STY & REL
+srstr_sty = srstr[:543, :]
+srstr_rel = srstr[543:, :]
+srstre2_sty = srstre2[:6105, :]
+srstre2_rel = srstre2[6105:, :]
+
+# Partition distance-1 structure according to entries' link status:
 # D = Defined for the Arguments and its children;
 # B = Blocked;
 # DNI = Defined but Not Inherited by the children of the Arguments
 
-srstr_d = srstr[srstr[:, 3] == 'D', :]
-srstr_b = srstr[srstr[:, 3] == 'B', :]
-srstr_dni = srstr[srstr[:, 3] == 'DNI', :]
+srstr_d = srstr_sty[srstr_sty[:, 3] == 'D', :]
+srstr_b = srstr_sty[srstr_sty[:, 3] == 'B', :]
+srstr_dni = srstr_sty[srstr_sty[:, 3] == 'DNI', :]
 
-print("Shapes of SRSTR relationships: ")
+print("Shapes of SRSTR relationships among STYs: ")
 print("Defined: " + str(srstr_d.shape))
 print("Blocked: " + str(srstr_b.shape))
 print("Defined but Not Inherited: " + str(srstr_dni.shape))
 
 # Create multi-directed-graphs for SRSTR and SRSTRE2
-srstr_graph = nx.MultiDiGraph()
+srstr_graph = nx.MultiDiGraph(name='SRSTR defined relationship graph')
 for entry in srstr_d:
-    # Disconnect 4 topmost nodes from ''
-    if entry[2] == '':
-        continue
-    else:
-        srstr_graph.add_edge(entry[0], entry[2], relation = entry[1])
+    if entry[2] != '':  # Disconnect 4 topmost nodes from ''
+        if entry[1] == 'isa':
+            srstr_graph.add_edge(entry[0], entry[2], color='lightcoral', relation=entry[1])
+        else:
+            srstr_graph.add_edge(entry[0], entry[2], color='cyan', relation=entry[1])
 
-srstre2_graph = nx.MultiDiGraph()
-for entry in srstre2:
-    # Disconnect 4 topmost nodes from ''
-    if entry[2] == '':
-        continue
+srstre2_graph = nx.MultiDiGraph(name='SRSTRE2 relationship graph')
+for entry in srstre2_sty:
+    if entry[2] != '':  # Disconnect 4 topmost nodes from ''
+        if entry[1] == 'isa':
+            srstre2_graph.add_edge(entry[0], entry[2], color='lightcoral', relation=entry[1])
+        else:
+            srstre2_graph.add_edge(entry[0], entry[2], color='cyan', relation=entry[1])
+
+# Print number of nodes and edges
+# We can see number of nodes present in SRSTR and SRSTRE2 are the same.
+print(nx.info(srstr_graph))
+print(nx.info(srstre2_graph))
+
+# SRSTR ans SRSTRE2 have the same nodes, which make up the entirety of Semantic Types
+assert (list(srstr_graph.nodes).sort() == list(srstre2_graph.nodes).sort())
+
+# STY frequency in SRSTR
+styFreq = dict((el, 0) for el in list(srstr_graph.nodes))
+for entry in srstr_d:
+    if entry[2] != '':
+        styFreq[entry[0]] += 1
+        styFreq[entry[2]] += 1
+
+# REL frequency in SRSTRE2
+relFreq_srstre2 = {}
+for rel in srstre2_sty[:, 1]:
+    if rel in relFreq_srstre2:
+        relFreq_srstre2[rel] += 1
     else:
-        srstre2_graph.add_edge(entry[0], entry[2], relation = entry[1])
+        relFreq_srstre2[rel] = 1
+
+# Reflexive and symmetric relationships
+reflex_count = 0
+symmetric_count = 0
+for entry in srstr_d:
+    if entry[0] == entry[2]:
+        # print("Reflexive relationship: ")
+        # print(entry)
+        reflex_count += 1
+    else:
+        for anotherEntry in srstr_d:
+            if anotherEntry[0] == entry[2] and anotherEntry[2] == entry[0]:
+                # print("Symmetric relationship: ")
+                # print(entry)
+                # print(anotherEntry)
+                symmetric_count += 1
+
+print("Total number of reflexive relationships (xRx): " + str(reflex_count))
+print("Total number of symmetric relationships (xRy yRx): " + str(symmetric_count))
 
 # Visualize SRSTR
+node_sizes = [styFreq[n] * 10 for n in srstr_graph.nodes]
+edge_colors = [attr['color'] for n1, n2, attr in srstr_graph.edges(data=True)]
+
 options = {
-    'node_color': 'red',
-    'node_size': 5,
+    'node_color': 'khaki',
+    'node_size': node_sizes,
     'with_labels': True,
-    'alpha': 0.5,
-    'edge_color': 'blue',
+    'edge_color': edge_colors,
+    'font_size': 7,
 }
 
 nx.draw(srstr_graph, **options)
 plt.show()
-
-# Print number of nodes and edges
-# We can see number of nodes present in SRSTR and SRSTRE2 are the same.
-print("Number of nodes for SRSTR: " + str(srstr_graph.number_of_nodes()))
-print("Number of edges for SRSTR: " + str(srstr_graph.number_of_edges()))
-print("Number of nodes for SRSTRE2: " + str(srstre2_graph.number_of_nodes()))
-print("Number of edges for SRSTRE2: " + str(srstre2_graph.number_of_edges()))
-
-# In case lists of nodes and edges are needed
-srstr_nodes = list(srstr_graph.nodes)
-srstr_edges = list(srstr_graph.edges)
-srstre2_nodes = list(srstre2_graph.nodes)
-srstre2_edges = list(srstre2_graph.edges)
-
-# SRSTR ans SRSTRE2 have the same nodes, which make up the entirety of Semantic Types
-assert(srstr_nodes.sort() == srstre2_nodes.sort())
-sem_types = srstr_nodes
