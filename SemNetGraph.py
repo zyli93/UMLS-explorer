@@ -12,9 +12,37 @@
 # - SRFIL: description of each table
 # - SRFLD: description of each field
 
+import pickle
 import numpy as np
 import networkx as nx
 import matplotlib.pyplot as plt
+
+
+def visualize_graph(graph):
+    # visualize_graph visualizes a graph using a set of options found through trial and error
+    # networkX takes options for node/edge size/color among other things
+    # In order for each node/edge to have its own size/color, create a list of all nodes' sizes/colors
+
+    # Create a list of node sizes based on frequency of appearance
+    node_sizes = [styFreq[n] * 10 for n in graph.nodes]
+    # Create a list of edge colors based on its relation type
+    edge_colors = [attr['color'] for n1, n2, attr in graph.edges(data=True)]
+    # Use graphviz_layout to get cleaner layout
+    positions = nx.nx_agraph.graphviz_layout(graph, prog='neato')
+
+    options = {
+        'pos': positions,           # layout option
+        'node_color': 'khaki',
+        'node_size': node_sizes,
+        'with_labels': True,
+        'edge_color': edge_colors,
+        'font_size': 5,
+    }
+
+    plt.figure()
+    nx.draw(graph, **options)
+    plt.show()
+
 
 # import files of interest
 srstr = np.genfromtxt('/Users/qinyilong/Desktop/ScAi/SRSTR', dtype='unicode', delimiter='|')
@@ -49,10 +77,12 @@ print("Defined but Not Inherited: " + str(srstr_dni.shape))
 
 # Create multi-directed-graphs for SRSTR and SRSTRE2
 srstr_graph = nx.MultiDiGraph(name='SRSTR defined relationship graph')
+srstr_trees = nx.MultiDiGraph(name='SRSTR defined tree (only isa relation)')
 for entry in srstr_d:
     if entry[2] != '':  # Disconnect 4 topmost nodes from ''
         if entry[1] == 'isa':
             srstr_graph.add_edge(entry[0], entry[2], color='lightcoral', relation=entry[1])
+            srstr_trees.add_edge(entry[0], entry[2], color='lightcoral', relation=entry[1])
         else:
             srstr_graph.add_edge(entry[0], entry[2], color='cyan', relation=entry[1])
 
@@ -87,6 +117,9 @@ for rel in srstre2_sty[:, 1]:
     else:
         relFreq_srstre2[rel] = 1
 
+# with open('rel_freq_SRSTRE2.pickle', 'wb') as handle:
+#     pickle.dump(relFreq_srstre2, handle, protocol=pickle.HIGHEST_PROTOCOL)
+
 # Reflexive and symmetric relationships
 reflex_count = 0
 symmetric_count = 0
@@ -106,17 +139,5 @@ for entry in srstr_d:
 print("Total number of reflexive relationships (xRx): " + str(reflex_count))
 print("Total number of symmetric relationships (xRy yRx): " + str(symmetric_count))
 
-# Visualize SRSTR
-node_sizes = [styFreq[n] * 10 for n in srstr_graph.nodes]
-edge_colors = [attr['color'] for n1, n2, attr in srstr_graph.edges(data=True)]
-
-options = {
-    'node_color': 'khaki',
-    'node_size': node_sizes,
-    'with_labels': True,
-    'edge_color': edge_colors,
-    'font_size': 7,
-}
-
-nx.draw(srstr_graph, **options)
-plt.show()
+visualize_graph(srstr_graph)
+visualize_graph(srstr_trees)
