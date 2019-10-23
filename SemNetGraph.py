@@ -45,8 +45,11 @@ def visualize_graph(graph):
 
 
 # import files of interest
-srstr = np.genfromtxt('/Users/qinyilong/Desktop/ScAi/SRSTR', dtype='unicode', delimiter='|')
-srstre2 = np.genfromtxt('/Users/qinyilong/Desktop/ScAi/SRSTRE2', dtype='unicode', delimiter='|')
+srstr = np.genfromtxt('/Users/zyli/Research/UMLS-explorer/NET/SRSTR', dtype='unicode', delimiter='|')
+srstre2 = np.genfromtxt('/Users/zyli/Research/UMLS-explorer/NET/SRSTRE2', dtype='unicode', delimiter='|')
+
+# srstr = np.genfromtxt('/Users/qinyilong/Desktop/ScAi/SRSTR', dtype='unicode', delimiter='|')
+# srstre2 = np.genfromtxt('/Users/qinyilong/Desktop/ScAi/SRSTRE2', dtype='unicode', delimiter='|')
 
 # Delete the last columns because they are empty
 srstr = np.delete(srstr, 4, axis=1)
