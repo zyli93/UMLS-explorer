@@ -1,0 +1,22 @@
+This document contains some resources for text:
+
+1. PubMed stopwords:
+ftp://ftp.ncbi.nlm.nih.gov/pub/wilbur/stopwords.zip
+
+2. PubMed Phrases:
+ftp://ftp.ncbi.nlm.nih.gov/pub/lu/PubMedPhrase/PubMed_Phrases.tar.gz
+
+3. MEDLINE, PubMed, and PMC difference
+    * PubMed (1996)
+    * MEDLINE (1960) uses NLM controlled vocabulary (MeSH) to index citations.
+    * MEDLINE is the largest subset of PubMed. 
+    * PubMed Central (2000) - free archive for full-text biomedical and life science journal articles.
+
+4. PubMed Centrak `oa_bulk` dataset
+ftp://ftp.ncbi.nlm.nih.gov/pub/pmc/oa_bulk/
+
+5. MEDLINE/PubMed annual baseline data
+ftp://ftp.ncbi.nlm.nih.gov/pubmed/baseline
+
+6. An amazing parser for both datasets
+https://github.com/titipata/pubmed_parser
