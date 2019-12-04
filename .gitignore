@@ -4,6 +4,9 @@
 # Dataset files
 data/
 
+# MRHIER filled file
+MRHIER/MRHIER_filled.csv
+
 # NET
 NET/
 
