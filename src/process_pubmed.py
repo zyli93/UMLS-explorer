@@ -1,5 +1,5 @@
 """
-    Process PubMed text using package `pubmed_parser` online
+    Process MEDLINE text using package `pubmed_parser` online
 
     Author: Zeyu Li <zyli@cs.ucla.edu> or <zeyuli@g.ucla.edu>
 
@@ -8,8 +8,6 @@
         - parsing file 640 will run into a problem
         - parsing file 718 will run into a problem
         - parsing file 719 will run into a problem
-
-
 """
 
 import os
