@@ -2,6 +2,14 @@
     Process PubMed text using package `pubmed_parser` online
 
     Author: Zeyu Li <zyli@cs.ucla.edu> or <zeyuli@g.ucla.edu>
+
+    Notes:
+        - parsing file 632 will run into a problem
+        - parsing file 640 will run into a problem
+        - parsing file 718 will run into a problem
+        - parsing file 719 will run into a problem
+
+
 """
 
 import os
@@ -24,7 +32,7 @@ def parse_single_doc(f):
     file_name = "pubmed19n{:04d}.xml.gz".format(f)
     file_name = "../MEDLINE/" + file_name
 
-    # dicts_out is a list of dictionary
+    # dicts_out is a list of dictionay
     dicts_out = pp.parse_medline_xml(file_name,
                                      year_info_only=False, nlm_category=False,
                                      author_list=False, reference_list=False)
