@@ -1,3 +1,9 @@
+"""
+    Create UMLS Source Vocabulary transitive closures for Poincare embedding.
+    
+    Author: Louis Qin <louisqin@ucla.edu> or <qyl0509@icloud.com>
+"""
+
 import pandas as pd
 
 mrhier_filled = pd.read_csv('../MRHIER/MRHIER_filled.csv', sep='|', dtype=object)

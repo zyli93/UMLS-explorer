@@ -1,3 +1,9 @@
+"""
+    Fill the blanks of MRHIER.RRF (verification needed)
+    
+    Author: Louis Qin <louisqin@ucla.edu> or <qyl0509@icloud.com>
+"""
+
 import pandas as pd
 
 # import MRHIER.RRF

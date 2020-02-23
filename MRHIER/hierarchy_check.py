@@ -1,10 +1,14 @@
+"""
+    hierarchy_check.py
+    1. checks if each context of each source vocabulary is a tree structure
+    2. dumps MRHIER metadata in this format: SAB, # of AUIs, # of contexts, # of trees
+    
+    Author: Louis Qin <louisqin@ucla.edu> or <qyl0509@icloud.com>
+"""
+
 import argparse
 import pandas as pd
 import networkx as nx
-
-# This script:
-# 1. checks if each context of each source vocabulary is a tree structure
-# 2. dumps MRHIER metadata in this format: SAB, # of AUIs, # of contexts, # of trees
 
 parser = argparse.ArgumentParser(description='MRHIER trees')
 parser.add_argument('-v', '--verbose', action='store_true', default=False, help='print cycles in context/source')

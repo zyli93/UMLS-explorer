@@ -1,3 +1,9 @@
+"""
+    Tokenize pubmed and pmc corpora and apply stemming and lemmatization.
+    
+    Author: Louis Qin <louisqin@ucla.edu> or <qyl0509@icloud.com>
+"""
+
 import os
 import pickle
 import nltk
