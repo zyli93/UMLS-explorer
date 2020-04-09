@@ -7,11 +7,11 @@ import streamlit as st
 st.sidebar.title('UMLS Semantic Network Visualization')
 
 # import SRSTR
-srstr = pd.read_csv('/Users/qinyilong/Desktop/ScAi/SRSTR', sep='|', header=None, dtype=object)
+srstr = pd.read_csv('SRSTR', sep='|', header=None, dtype=object)
 srstr = srstr.drop(4, axis=1)     # delete the empty last column
 
 # import semantic type frequencies
-with open('semanticTypes.pickle', 'rb') as handle:
+with open('../pickles/semanticTypes.pickle', 'rb') as handle:
     sty = pickle.load(handle)
 
 # Extract defined relations among semantic types
@@ -55,9 +55,9 @@ draw_option = st.sidebar.radio(
 )
 
 if draw_option == 'Hierarchical':
-    to_draw = srstr_trees;
+    to_draw = srstr_trees
 elif draw_option == 'Hierarchical + Associative':
-    to_draw = srstr_graph;
+    to_draw = srstr_graph
 
 data_or_graph = st.sidebar.radio(
     'Data or graph?',
