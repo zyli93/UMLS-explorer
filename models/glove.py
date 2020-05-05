@@ -33,20 +33,18 @@ class GloveDataset(Dataset):
         self._word_counter.update(tokens)
         
     def create(self):
-        print("Tokenizing words to ids...")
-        self._word2id = {w:i for i, (w,_) in enumerate(self._word_counter.most_common())}
+        print("STATUS: Tokenizing words to ids...")
+        self._word2id = {w:i+1 for i, (w,_) in enumerate(self._word_counter.most_common())}
+        self._word2id.update({'<PAD>':0})
         self._id2word = {i:w for w, i in self._word2id.items()}
         self._vocab_len = len(self._word2id)
         self._id_tokens = [self._word2id[w] for w in self._tokens]
 
         self._create_coocurrence_matrix()
-
-        print("# of words: {}".format(len(self._tokens)))
-        print("Vocabulary length: {}".format(self._vocab_len))
         
     def _create_coocurrence_matrix(self):
         cooc_mat = defaultdict(Counter)
-        print("Creating coocurrence matrix...")
+        print("STATUS: Creating coocurrence matrix...")
         for i, w in enumerate(self._id_tokens):
             start_i = max(i - self._window_size, 0)
             end_i = min(i + self._window_size + 1, len(self._id_tokens))
@@ -59,7 +57,7 @@ class GloveDataset(Dataset):
         self._j_idx = list()
         self._xij = list()
         
-        print("\tReducing cooccurrence matrix memory usage...")
+        print("STATUS: \tReducing cooccurrence matrix memory usage...")
         #Create indexes and x values tensors
         for w, cnt in cooc_mat.items():
             for c, v in cnt.items():
@@ -81,13 +79,15 @@ class GloveDataset(Dataset):
 class GloveModel(nn.Module):
     def __init__(self, num_embeddings, embedding_dim):
         super(GloveModel, self).__init__()
-        self.wi = nn.Embedding(num_embeddings, embedding_dim)
-        self.wj = nn.Embedding(num_embeddings, embedding_dim)
-        self.bi = nn.Embedding(num_embeddings, 1)
-        self.bj = nn.Embedding(num_embeddings, 1)
+        self.wi = nn.Embedding(num_embeddings, embedding_dim, padding_idx=0)
+        self.wj = nn.Embedding(num_embeddings, embedding_dim, padding_idx=0)
+        self.bi = nn.Embedding(num_embeddings, 1, padding_idx=0)
+        self.bj = nn.Embedding(num_embeddings, 1, padding_idx=0)
         
         self.wi.weight.data.uniform_(-1, 1)
         self.wj.weight.data.uniform_(-1, 1)
+        self.wi.weight.data[0].zero_()
+        self.wj.weight.data[0].zero_()
         self.bi.weight.data.zero_()
         self.bj.weight.data.zero_()
         
@@ -100,7 +100,7 @@ class GloveModel(nn.Module):
         x = torch.sum(w_i * w_j, dim=1) + b_i + b_j
         return x
 
-def weight_func(x, x_max, alpha):
+def weight_func(x, x_max=X_MAX, alpha=ALPHA):
     wx = (x/x_max)**alpha
     wx = torch.min(wx, torch.ones_like(wx))
     return wx.cuda()  
@@ -109,10 +109,10 @@ def wmse_loss(weights, inputs, targets):
     loss = weights * F.mse_loss(inputs, targets, reduction='none')
     return torch.mean(loss).cuda()
 
-def train(loader, model, optimizer, device):
-    for e in range(1, N_EPOCHS+1):
+def train(loader, model, optimizer, epochs, device):
+    for e in range(1, epochs+1):
         t = tqdm(enumerate(loader), total=len(loader))
-        t.set_description("Epoch: {}/{}".format(e, N_EPOCHS))
+        t.set_description("Epoch: {}/{}".format(e, epochs))
         for batch_i, (x_ij, i_idx, j_idx) in t:
             x_ij, i_idx, j_idx = x_ij.to(device), i_idx.to(device), j_idx.to(device)
             optimizer.zero_grad()
@@ -128,31 +128,49 @@ def train(loader, model, optimizer, device):
             
         torch.save(model.state_dict(), "glove.pth")
 
-def main():
+def load_corpus(dir):
+    """Load cleaned corpus into a GloveDataset object
+    Args:
+        dir: a list of directories including corpus files
+    Returns:
+        a GloveDataset object
+    """
+    print("=================================Loading Corpus==================================")
     # create dataset
     dataset = GloveDataset()
     # load dataset
-    for directory in [PMC_DIR]:
-        pbar = tqdm(os.listdir(directory))
+    for d in dir:
+        pbar = tqdm(os.listdir(d))
         for filename in pbar:
             if filename.endswith(".txt"):
                 pbar.set_description("Loading {}".format(filename))
-                with open("{}/{}".format(directory, filename)) as f:
+                with open("{}/{}".format(d, filename)) as f:
                     text = f.read()
                     dataset.load(text)
     # create mappings and cooccurence matrix
     dataset.create()
+    print("Summary:")
+    print("\tCorpus size: {}".format(len(dataset._tokens)))
+    print("\tVocabulary size: {}".format(dataset._vocab_len))
+    print("==============================Finish Loading Corpus=============================")
+    return dataset
+
+if __name__ == "__main__":
+    # create dataset from corpus
+    dataset = load_corpus([PMC_DIR])
+    # create data loader
     train_loader = DataLoader(dataset=dataset, batch_size=BATCH_SIZE, shuffle=True, num_workers=8)
     # create glove model
     glove = GloveModel(dataset._vocab_len, EMBED_DIM)
+    
+    # move model to gpu
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-    if torch.cuda.device_count() > 1:
-        print("Using", torch.cuda.device_count(), "GPUs!")
-        glove = nn.DataParallel(glove)
+    # data parallel
+    # if torch.cuda.device_count() > 1:
+    #     print("Using", torch.cuda.device_count(), "GPUs!")
+    #     glove = nn.DataParallel(glove)
     glove.to(device)
+    
     optimizer = optim.Adagrad(glove.parameters(), lr=0.05)
     # train
-    train(train_loader, glove, optimizer, device)
-
-if __name__ == "__main__":
-    main()
+    train(train_loader, glove, optimizer, 3, device)
