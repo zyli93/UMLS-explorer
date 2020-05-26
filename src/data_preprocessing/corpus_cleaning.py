@@ -22,21 +22,21 @@ from nltk.corpus import stopwords
 from nltk.stem import WordNetLemmatizer
 from nltk import FreqDist
 
-MEDLINE_SRC_DIR = "../../medline_output"
-MEDLINE_DEST_DIR = "../../medline_clean"
-MEDLINE_FREQ_DIR = "../../medline_freq"
-PMC_SRC_DIR = "../../pmc_output"
-PMC_DEST_DIR = "../../pmc_clean"
-PMC_FREQ_DIR = "../../pmc_freq"
+MEDLINE_SRC_DIR = "../../../medline_output"
+MEDLINE_DEST_DIR = "../../../medline_clean"
+MEDLINE_FREQ_DIR = "../../../medline_freq"
+PMC_SRC_DIR = "../../../pmc_output"
+PMC_DEST_DIR = "../../../pmc_clean"
+PMC_FREQ_DIR = "../../../pmc_freq"
 
-def file_cleaning(src_dir, dest_dir, freq_dir):
+def file_cleaning(src_dir, dest_dir, freq_dir, lemma=False):
     """clean a file and count clean words frequencies"""
     print(f"processing {src_dir}...")
     freq = FreqDist([])
     with open(src_dir, 'r') as f:
         paragraph = f.read()
     sentences = sent_tokenize(paragraph)
-    for s in sentences:
+    for i, s in enumerate(sentences):
         # Special lines in pmc
         if s.startswith(">>>>>>"):
             s = s.split(None, 1)[1]
@@ -46,14 +46,16 @@ def file_cleaning(src_dir, dest_dir, freq_dir):
         words = word_tokenize(lowered)
         # remove punctuation and stop words
         cleaned = [w for w in words if re.search('[a-zA-Z]', w) and not w in stopwords.words('english')]
-        # lemmatize words
-        wl = WordNetLemmatizer()
-        lemmas = [wl.lemmatize(w) for w in cleaned]
-        # write cleaned sentences
-        with open(dest_dir, 'a+') as fout:
-            print(' '.join(lemmas), file=fout)
+        if lemma:
+            # lemmatize words
+            wl = WordNetLemmatizer()
+            cleaned = [wl.lemmatize(w) for w in cleaned]
         # update word frequency
-        freq += FreqDist(lemmas)
+        freq += FreqDist(cleaned)
+        # replace sentence with cleaned
+        sentences[i] = ' '.join(cleaned)
+    with open(dest_dir, 'w') as fout:
+        print('\n'.join(sentences), file=fout)
     with open(f'{freq_dir}.pickle', 'wb') as handle:
         pickle.dump(freq, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
