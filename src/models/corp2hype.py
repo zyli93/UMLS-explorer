@@ -13,9 +13,9 @@ CORP_EMB_DIM = 128
 HYPE_EMB_DIM = 128
 HIDDEN_DIM = 256
 
-PMC_DIR = "../../pmc_clean"
-MEDLINE_DIR = "../../medline_clean"
-POINCARE_DIR = "../../../poincare/icd10/icd10.pth.best"
+PMC_DIR = "../../../pmc_clean"
+MEDLINE_DIR = "../../../medline_clean"
+POINCARE_DIR = "../../../../poincare/icd10/icd10.pth.best"
 N_EPOCHS = 100
 BATCH_SIZE = 2048
 
@@ -106,8 +106,11 @@ def train(corp_data, hype_data, glove_model, corp2hype_model, glove_optim, corp2
             
             t.set_postfix(corp2hype_loss=corp2hype_loss.item(), glove_loss=glove_loss.item())
             
-        torch.save(glove_model.state_dict(), "glove.pth")
-        torch.save(corp2hype_model.state_dict(), "corp2hype.pth")
+        torch.save({
+            "glove": glove_model.state_dict(), 
+            "corp2hype": corp2hype_model.state_dict(),
+            "word2id": corp_data._word2id},
+            "corp2hype.pth")
 
 if __name__ == "__main__":
     # create datasets

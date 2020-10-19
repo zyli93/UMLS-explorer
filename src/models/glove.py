@@ -13,8 +13,8 @@ import torch.optim as optim
 import torch.nn.functional as F
 from torch.utils.data import Dataset, DataLoader
 
-PMC_DIR = "../../pmc_clean"
-MEDLINE_DIR = "../../medline_clean"
+PMC_DIR = "../../../pmc_clean"
+MEDLINE_DIR = "../../../medline_clean"
 EMBED_DIM = 128
 N_EPOCHS = 100
 BATCH_SIZE = 2048 * 8
@@ -22,6 +22,15 @@ X_MAX = 100
 ALPHA = 0.75
 
 class GloveDataset(Dataset):
+    """ GloVe dataset
+
+    Attributes:
+        embeds: pretrained poincare embedding
+        id2phrase: defaultdict mapping id to phrase
+        id2words: defaultdict mapping id to cleaned words
+        phrase2id: defaultdict mapping phrase to id
+        vocab: defaultdict mapping word to a list of phrase ids
+    """
     def __init__(self, window_size=5):
         self._window_size = window_size
         self._tokens = list()

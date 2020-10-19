@@ -7,8 +7,8 @@ import numpy as np
 import pandas as pd
 import clean
 
-POINCARE_DIR = "../../../poincare/icd10/icd10.pth.best"
-MRCONSO_DIR = '../../2018AB_RRF/META/MRCONSO.RRF'
+POINCARE_DIR = "../../../../poincare/icd10/icd10.pth.best"
+MRCONSO_DIR = '../../../2018AB_RRF/META/MRCONSO.RRF'
 
 class PoincareDataset:
     """ Poincare dataset
