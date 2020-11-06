@@ -108,7 +108,7 @@ if __name__ == "__main__":
     
     copy_hyperbolic(data_dir, experiment_data_dir, opt.source_vocab)
 
-    output_dir = os.path.join(experiment_dir, 'vocab')
+    output_dir = os.path.join(experiment_data_dir, 'vocab')
     os.makedirs(output_dir, exist_ok=True)
 
     create_allennlp_vocab(experiment_data_dir, output_dir, opt.source_vocab)
