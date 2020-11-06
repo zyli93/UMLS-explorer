@@ -3,6 +3,7 @@ import random
 import glob
 import os
 import shutil
+import argparse
 
 random.seed(42)
 
@@ -27,7 +28,7 @@ def create_sample_corpus(sample_paths, output_dir):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='sample corpus')
-    parser.add_argument('-n', '--n_samples', required=True, help='number of samples')
+    parser.add_argument('-n', '--n_samples', required=True, type=int, help='number of samples')
     opt = parser.parse_args()
 
     data_dir = os.environ['DATA_DIR']
