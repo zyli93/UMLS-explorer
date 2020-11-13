@@ -8,6 +8,7 @@ import logging
 import math
 from collections import defaultdict
 import glob
+import os
 
 from overrides import overrides
 
@@ -45,16 +46,15 @@ class UMLSDatasetReader(DatasetReader):
     """
     def __init__(self,
                  tokenizer: Tokenizer = None,
-                 token_indexers: Dict[str, TokenIndexer] = None,                # NOTE: namespace corpus
-                 hyperbolic_phrase_indexers: Dict[str, TokenIndexer] = None,    # NOTE: namespace hyperbolic
+                 token_indexers: Dict[str, TokenIndexer] = None,
+                 hyperbolic_phrase_indexers: Dict[str, TokenIndexer] = None,
                  max_sequence_length: int = None,
                  start_tokens: List[str] = None,
-                 end_tokens: List[str] = None,
-                 max_file_count: int = -1) -> None:
+                 end_tokens: List[str] = None) -> None:
         super().__init__(True)
         self._tokenizer = tokenizer or WordTokenizer()
-        self._token_indexers = token_indexers or {"tokens": SingleIdTokenIndexer()}
-        self._hyperbolic_phrase_indexers = hyperbolic_phrase_indexers or {"tokens": SingleIdTokenIndexer()}
+        self._token_indexers = token_indexers or {"tokens": SingleIdTokenIndexer(namespace='euclidean')}
+        self._hyperbolic_phrase_indexers = hyperbolic_phrase_indexers or {"tokens": SingleIdTokenIndexer(namespace='hyperbolic')}
 
         if max_sequence_length is not None:
             self._max_sequence_length: Union[float, Optional[int]] = max_sequence_length
@@ -63,7 +63,6 @@ class UMLSDatasetReader(DatasetReader):
 
         self._start_tokens = [Token(st) for st in (start_tokens or [])]
         self._end_tokens = [Token(et) for et in (end_tokens or [])]
-        self._max_file_count = max_file_count
 
         logger.info("Creating SimpleLanguageModelingDatasetReader")
         logger.info("max_sequence_length=%s", max_sequence_length)
@@ -72,33 +71,44 @@ class UMLSDatasetReader(DatasetReader):
     def _read(self, 
               file_path: str) -> Iterable[Instance]:
         # pylint: disable=arguments-differ
-        hyperbolic_path = file_path + 'hyperbolic'
-        corpus_path = file_path + 'corpus'
+        hyperbolic_dir = os.path.join(file_path, 'hyperbolic')
+        corpus_dir = os.path.join(file_path, 'corpus')
+        vocab_dir = os.path.join(file_path, 'vocab')
 
-        self._map_token_to_hyperbolic_phrases(hyperbolic_path + 'labels.tsv')
+        self._map_token_to_hyperbolic_phrases(os.path.join(vocab_dir, 'hyperbolic.txt'))
 
-        logger.info('Loading corpus data from %s', corpus_paths)
+        logger.info('Loading corpus data from %s', corpus_dir)
         dropped_instances = 0
+        skipped_instances = 0
 
-        for i, filename in enumerate(glob.iglob(corpus_path + '**/*.txt', recursive=True)):
-            if i == self._max_file_count:
-                break
+        corpus_file_pattern = os.path.join(corpus_dir, '**/*.txt')
+        for filename in glob.iglob(corpus_file_pattern, recursive=True):
             with open(filename) as file:
                 for sentence in file:
                     tokens = self._tokenizer.tokenize(sentence)
+                    instances = [] #TODO: skip or not?
                     for tok in tokens:
                         if tok.text in self._token2phrases:
                             for phrase in self._token2phrases[tok.text]:
                                 instance = self.text_to_instance(sentence, phrase)
-                                if instance.fields['source'].sequence_length() <= self._max_sequence_length:
-                                    yield instance
-                                else:
-                                    dropped_instances += 1
+                                instances.append(instance)
+                    if not instances:
+                        skipped_instances += 1
+                    for instance in instances:
+                        if instance.fields['source'].sequence_length() <= self._max_sequence_length:
+                            yield instance
+                        else:
+                            dropped_instances += 1
         
         if not dropped_instances:
             logger.info(f"No instances dropped.")
         else:
             logger.warning(f"Dropped {dropped_instances} instances.")
+
+        if not skipped_instances:
+            logger.info(f"No instances skipped.")
+        else:
+            logger.warning(f"Dropped {skipped_instances} instances.")
 
         logger.info(f"Loaded corpus from {i} files.")
     
@@ -109,7 +119,7 @@ class UMLSDatasetReader(DatasetReader):
         logger.info('Loading hyperbolic phrases from %s', phrase_file)
         with open(phrase_file) as file:
             for line in file:
-                aui, phrase = file.split('\t')
+                phrase = line.rstrip()
                 tokens = self._tokenizer.tokenize(phrase)
                 for tok in tokens:
                     self._token2phrases[tok.text].append(phrase)
@@ -124,15 +134,13 @@ class UMLSDatasetReader(DatasetReader):
         tokenized_with_ends.extend(self._start_tokens)
         tokenized_with_ends.extend(tokenized)
         tokenized_with_ends.extend(self._end_tokens)
-        return_instance = Instance({
-                'source': TextField(tokenized_with_ends, self._token_indexers)
-        })
+        fields = {'source': TextField(tokenized_with_ends, self._token_indexers)}
 
         if hyperbolic_phrase:
             hyperbolic_tokens = self._tokenizer.tokenize(hyperbolic_phrase)
-            return_instance.update({
+            fields.update({
                 'hyperbolic_tokens': TextField(hyperbolic_tokens, self._token_indexers),
-                'hyperbolic_phrase': TextField(Token(hyperbolic_phrase), self._hyperbolic_phrase_indexers) 
+                'hyperbolic_phrase': TextField([Token(hyperbolic_phrase)], self._hyperbolic_phrase_indexers) 
             })
 
-        return return_instance
+        return Instance(fields)
