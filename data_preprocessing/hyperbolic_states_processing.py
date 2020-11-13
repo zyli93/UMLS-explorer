@@ -21,33 +21,51 @@ def load_checkpoint(checkpoint_path):
 
 def transform(checkpoint, mrconso):
     """tranform pytorch states checkpoint to vocab and embedding"""
-    print("transforming checkpoint")
-    auis = []
-    phrases = []
-    invalid_indices = []
+    assert len(checkpoint['objects']) == len(checkpoint['embeddings']), "mismatch between number of AUIs and embeddings"
 
-    for i, x in enumerate(checkpoint['objects']):
-        n = mrconso[mrconso['AUI'] == x].shape[0]
+    print("transforming checkpoint")
+    phrase2embedding = dict()
+    phrase2aui = dict()
+    duplicate_phrases = set()
+
+    for aui, embedding in zip(checkpoint['objects'], checkpoint['embeddings']):
+        matches = mrconso[mrconso['AUI'] == aui]
+        n = matches.shape[0]
         if n >= 1:
-            auis.append(x)
-            phrases.append(mrconso[mrconso['AUI'] == x]['STR'].iloc[0])
-            if n > 1:
-                print("AUI has more than one STR, defaulting to the first one")
-                print(mrconso[mrconso['AUI'] == x]['STR'])
+            phrase = matches['STR'].iloc[0]
+            # TODO: lowercase phrase
+            if phrase in phrase2embedding:
+                duplicate_phrases.add(phrase)
+                print(f"Duplicate STR {phrase} AUI {aui}")
+            else:
+                phrase2embedding[phrase] = embedding
+                phrase2aui[phrase] = aui
+                if n > 1:
+                    print(f"AUI {aui} has more than one STR, defaulting to the first one")
+                    print(matches)
         else:
-            print("AUI missing in MRCONSO", x)
-            invalid_indices.append(i)
+            print("AUI missing in MRCONSO", aui)
+
+    auis = []
+    phrases =[]
+    embeddings = []
+
+    for phrase in phrase2embedding:
+        if phrase not in duplicate_phrases:
+            phrases.append(phrase)
+            auis.append(phrase2aui[phrase])
+            embeddings.append(phrase2embedding[phrase])
 
     words = {w for p in phrases for w in p.split()} # TODO: ideally this should use allennlp
-    
-    embeddings = checkpoint['embeddings'].numpy()
-    embeddings_valid = np.delete(embeddings, invalid_indices, 0)
+    embeddings = np.stack(embeddings)
+
+    print(f"number of embeddings preserved: {len(embeddings)} out of {len(checkpoint['embeddings'])}")
 
     return {
         'auis': auis,
         'words': words,
         'phrases': phrases,
-        'embedding': embeddings_valid
+        'embedding': embeddings
     }
 
 def save(auis, words, phrases, embedding, data_dir, source_vocab, tsv=False):
@@ -82,12 +100,12 @@ def save(auis, words, phrases, embedding, data_dir, source_vocab, tsv=False):
         labels_tsv_path = os.path.join(tsv_dir, f"{source_vocab}_labels.tsv")
         with open(labels_tsv_path, "w") as fp:
             print('AUI\tString', file=fp)
-            fp.write('\n'.join('\t'.join(a, p) for a, p in zip(auis, phrases)))
+            fp.write('\n'.join(['\t'.join(a, p) for a, p in zip(auis, phrases)]))
     
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description='export tsv')
+    parser = argparse.ArgumentParser(description='process hyperbolic torch states')
     parser.add_argument('-s', '--source-vocab', required=True, help='UMLS source vocabulary')
-    parser.add_argument('-t', '--export-tsv', default=False, help='export tsvs for visualization')
+    parser.add_argument('-t', '--export-tsv', default=True, help='export tsvs for visualization')
     opt = parser.parse_args()
 
     data_dir = os.environ['DATA_DIR']
