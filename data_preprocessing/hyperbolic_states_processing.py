@@ -33,7 +33,7 @@ def transform(checkpoint, mrconso):
         n = matches.shape[0]
         if n >= 1:
             phrase = matches['STR'].iloc[0]
-            # TODO: lowercase phrase
+            phrase = phrase.lower()
             if phrase in phrase2embedding:
                 duplicate_phrases.add(phrase)
                 print(f"Duplicate STR {phrase} AUI {aui}")
@@ -47,8 +47,8 @@ def transform(checkpoint, mrconso):
             print("AUI missing in MRCONSO", aui)
 
     auis = []
-    phrases =[]
-    embeddings = []
+    phrases =['EUCLID-HYPER-ENCODER-PLACEHOLDER']
+    embeddings = [np.zeros(len(list(phrase2embedding.values())[0]))]
 
     for phrase in phrase2embedding:
         if phrase not in duplicate_phrases:
@@ -100,7 +100,7 @@ def save(auis, words, phrases, embedding, data_dir, source_vocab, tsv=False):
         labels_tsv_path = os.path.join(tsv_dir, f"{source_vocab}_labels.tsv")
         with open(labels_tsv_path, "w") as fp:
             print('AUI\tString', file=fp)
-            fp.write('\n'.join(['\t'.join(a, p) for a, p in zip(auis, phrases)]))
+            fp.write('\n'.join(['\t'.join([a, p]) for a, p in zip(auis, phrases)]))
     
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='process hyperbolic torch states')
