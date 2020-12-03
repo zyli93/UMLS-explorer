@@ -97,7 +97,7 @@ if __name__ == "__main__":
     opt = parser.parse_args()
 
     data_dir = os.environ['DATA_DIR']
-    corpus_dir = os.path.join(data_dir, 'corpus')
+    corpus_dir = os.path.join(data_dir, 'corpus', 'clean')
     experiment_dir = os.environ['EXPERIMENT_DIR']
     experiment_data_dir = os.path.join(experiment_dir, 'data')
     experiment_corpus_dir = os.path.join(experiment_data_dir, 'corpus')
