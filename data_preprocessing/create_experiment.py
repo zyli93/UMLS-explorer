@@ -77,6 +77,10 @@ def create_allennlp_vocab(data_dir, output_dir, source_vocab):
     print(f"hyperbolic word vocabulary size: {len(hyperbolic_word_vocab)}")
     print(f"size of intersection: {len(corpus_vocab.intersection(hyperbolic_word_vocab))}")
 
+    tokens = ['</S>', '<S>', '@@UNKNOWN@@'] + list(corpus_vocab) # for vanilla elmo
+    with open(os.path.join(output_dir, 'tokens.txt'), 'w') as fp:
+        fp.write('\n'.join(tokens))
+
     corpus_vocab.update(hyperbolic_word_vocab)
     corpus_vocab = ['</S>', '<S>', '@@UNKNOWN@@'] + list(corpus_vocab)
 
