@@ -66,24 +66,25 @@ class HyperbolicTunedLanguageModel(LanguageModel):
     def forward(
         self, 
         source: TextFieldTensors,
-        hyperbolic_tokens: TextFieldTensors,
-        hyperbolic_phrase: TextFieldTensors
+        hyperbolic_tokens: TextFieldTensors = None,
+        hyperbolic_phrase: TextFieldTensors = None
     ) -> Dict[str, torch.Tensor]:
         # forward pass on language model
         return_dict = super().forward(source)
         
-        # forward pass on hyperbolic encoder
-        euclidean_embeddings = self._text_field_embedder(hyperbolic_tokens)
-        hyperbolic_embedding = self._hyperbolic_embedder(hyperbolic_phrase)
-        hyperbolic_embedding = hyperbolic_embedding.squeeze()
+        if hyperbolic_phrase is not None:
+            # forward pass on hyperbolic encoder
+            euclidean_embeddings = self._text_field_embedder(hyperbolic_tokens)
+            hyperbolic_embedding = self._hyperbolic_embedder(hyperbolic_phrase)
+            hyperbolic_embedding = hyperbolic_embedding.squeeze()
 
-        hyperbolic_pred = self._hyperbolic_encoder(
-                                euclidean_embeddings, 
-                                get_text_field_mask(hyperbolic_tokens)
-                            )
-        hyperbolic_encoding_loss = self._hyperbolic_encoding_loss(hyperbolic_pred, hyperbolic_embedding)
+            hyperbolic_pred = self._hyperbolic_encoder(
+                                    euclidean_embeddings, 
+                                    get_text_field_mask(hyperbolic_tokens)
+                                )
+            hyperbolic_encoding_loss = self._hyperbolic_encoding_loss(hyperbolic_pred, hyperbolic_embedding)
 
-        # aggregate loss
-        return_dict['loss'] += hyperbolic_encoding_loss * self._hyperbolic_weight
+            # aggregate loss
+            return_dict['loss'] += hyperbolic_encoding_loss * self._hyperbolic_weight
 
         return return_dict
