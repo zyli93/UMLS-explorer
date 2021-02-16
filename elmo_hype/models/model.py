@@ -4,14 +4,14 @@ import torch
 
 from allennlp.data import Vocabulary
 from allennlp.models.model import Model
-from allennlp.models.language_model import LanguageModel, _SoftmaxLoss
+from allennlp_models.lm.models.language_model import LanguageModel
+from allennlp.modules import SoftmaxLoss
 from allennlp.modules.text_field_embedders import TextFieldEmbedder
 from allennlp.modules.sampled_softmax_loss import SampledSoftmaxLoss
 from allennlp.modules.seq2seq_encoders import Seq2SeqEncoder
 from allennlp.modules.seq2vec_encoders import Seq2VecEncoder
 from allennlp.nn.util import get_text_field_mask
-from allennlp.nn import InitializerApplicator, RegularizerApplicator
-from allennlp.training.metrics import Perplexity
+from allennlp.nn import InitializerApplicator
 
 TextFieldTensors = Dict[str, Dict[str, torch.Tensor]]
 
@@ -30,7 +30,6 @@ class HyperbolicTunedLanguageModel(LanguageModel):
         sparse_embeddings: bool = False,
         bidirectional: bool = False,
         initializer: InitializerApplicator = None,
-        regularizer: Optional[RegularizerApplicator] = None,
     ) -> None:
         super().__init__(
             vocab,
@@ -40,10 +39,8 @@ class HyperbolicTunedLanguageModel(LanguageModel):
             num_samples,
             sparse_embeddings,
             bidirectional,
-            initializer,
-            regularizer
+            initializer
         )
-
         # reinitialize self._softmax_loss to change default namespace 'token'
         if num_samples is not None:
             self._softmax_loss = SampledSoftmaxLoss(
@@ -53,8 +50,9 @@ class HyperbolicTunedLanguageModel(LanguageModel):
                 sparse=sparse_embeddings,
             )
         else:
-            self._softmax_loss = _SoftmaxLoss(
-                num_words=vocab.get_vocab_size(namespace='euclidean'), embedding_dim=self._forward_dim
+            self._softmax_loss = SoftmaxLoss(
+                num_words=vocab.get_vocab_size(namespace='euclidean'), 
+                embedding_dim=self._forward_dim
             )
 
         # initialize hyperbolic components
@@ -82,7 +80,10 @@ class HyperbolicTunedLanguageModel(LanguageModel):
                                     euclidean_embeddings, 
                                     get_text_field_mask(hyperbolic_tokens)
                                 )
-            hyperbolic_encoding_loss = self._hyperbolic_encoding_loss(hyperbolic_pred, hyperbolic_embedding)
+            hyperbolic_encoding_loss = self._hyperbolic_encoding_loss(
+                hyperbolic_pred, 
+                hyperbolic_embedding
+                )
 
             # aggregate loss
             return_dict['loss'] += hyperbolic_encoding_loss * self._hyperbolic_weight
