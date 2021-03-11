@@ -25,6 +25,7 @@ class HyperbolicTunedLanguageModel(LanguageModel):
         hyperbolic_embedder: TextFieldEmbedder,
         hyperbolic_encoder: Seq2VecEncoder,
         hyperbolic_weight: float,
+        is_baseline: bool = False,
         dropout: float = None,
         num_samples: int = None,
         sparse_embeddings: bool = False,
@@ -61,6 +62,9 @@ class HyperbolicTunedLanguageModel(LanguageModel):
         self._hyperbolic_encoding_loss = torch.nn.MSELoss()
         self._hyperbolic_weight = hyperbolic_weight
 
+        # vanila language mode
+        self.is_baseline = is_baseline
+
     def forward(
         self, 
         source: TextFieldTensors,
@@ -70,7 +74,7 @@ class HyperbolicTunedLanguageModel(LanguageModel):
         # forward pass on language model
         return_dict = super().forward(source)
         
-        if hyperbolic_phrase is not None:
+        if not self.is_baseline and hyperbolic_phrase is not None:
             # forward pass on hyperbolic encoder
             euclidean_embeddings = self._text_field_embedder(hyperbolic_tokens)
             hyperbolic_embedding = self._hyperbolic_embedder(hyperbolic_phrase)
