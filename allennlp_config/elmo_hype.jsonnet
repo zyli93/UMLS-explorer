@@ -7,6 +7,11 @@ local EUCLID_DIM = 512;
 
 local EXPERIMENT_DATA_DIR = std.extVar("EXPERIMENT_DIR") + "/data";
 
+local parseBool(s) =
+  if s == "true" then true
+  else if s == "false" then false
+  else error "invalid boolean: " + std.manifestJson(s);
+
 local BASE_READER = {
         "type": "umls",
         "tokenizer": {
@@ -62,6 +67,7 @@ local BASE_LOADER = {
   "model": {
     "type": "hyperbolic_tuned_language_model",
     "bidirectional": true,
+    "is_baseline": parseBool(std.extVar("IS_BASELINE")),
     "num_samples": 8192,
     # Sparse embeddings don't work with DistributedDataParallel.
     "sparse_embeddings": false,
@@ -122,11 +128,19 @@ local BASE_LOADER = {
       }
     },
     "hyperbolic_encoder": {
-      "type": "lstm",
-      "input_size": EUCLID_DIM,
-      "hidden_size": HYPER_DIM
+      "type": "euc2hype",
+      "norm_encoder": {
+        "type": "lstm",
+        "input_size": EUCLID_DIM,
+        "hidden_size": HYPER_DIM
+      },
+      "dir_encoder": {
+        "type": "lstm",
+        "input_size": EUCLID_DIM,
+        "hidden_size": HYPER_DIM
+      },
     },
-    "hyperbolic_weight": 0.1
+    "hyperbolic_weight": 0.5
   },
   "data_loader": BASE_LOADER,
   // "distributed": {

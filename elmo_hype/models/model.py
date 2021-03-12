@@ -12,6 +12,7 @@ from allennlp.modules.seq2seq_encoders import Seq2SeqEncoder
 from allennlp.modules.seq2vec_encoders import Seq2VecEncoder
 from allennlp.nn.util import get_text_field_mask
 from allennlp.nn import InitializerApplicator
+from .loss import HyperbolicL1
 
 TextFieldTensors = Dict[str, Dict[str, torch.Tensor]]
 
@@ -59,7 +60,7 @@ class HyperbolicTunedLanguageModel(LanguageModel):
         # initialize hyperbolic components
         self._hyperbolic_embedder = hyperbolic_embedder
         self._hyperbolic_encoder = hyperbolic_encoder
-        self._hyperbolic_encoding_loss = torch.nn.MSELoss()
+        self._hyperbolic_encoding_loss = HyperbolicL1()
         self._hyperbolic_weight = hyperbolic_weight
 
         # vanila language mode
@@ -91,5 +92,6 @@ class HyperbolicTunedLanguageModel(LanguageModel):
 
             # aggregate loss
             return_dict['loss'] += hyperbolic_encoding_loss * self._hyperbolic_weight
+            return_dict['hyperbolic_encoding'] = hyperbolic_pred
 
         return return_dict
