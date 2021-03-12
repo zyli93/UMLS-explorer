@@ -50,7 +50,8 @@ class UMLSDatasetReader(DatasetReader):
                  hyperbolic_phrase_indexers: Dict[str, TokenIndexer] = None,
                  max_sequence_length: int = None,
                  start_tokens: List[str] = None,
-                 end_tokens: List[str] = None) -> None:
+                 end_tokens: List[str] = None,
+                 rare_frequency: int = 10) -> None:
         super().__init__()
         self._tokenizer = tokenizer or SpacyTokenizer()
         self._token_indexers = token_indexers or {"tokens": SingleIdTokenIndexer(namespace='euclidean')}
@@ -63,6 +64,8 @@ class UMLSDatasetReader(DatasetReader):
 
         self._start_tokens = [Token(st) for st in (start_tokens or [])]
         self._end_tokens = [Token(et) for et in (end_tokens or [])]
+
+        self._rare_frequency = rare_frequency
 
         logger.info("Creating SimpleLanguageModelingDatasetReader")
         logger.info("max_sequence_length=%s", max_sequence_length)
@@ -78,39 +81,40 @@ class UMLSDatasetReader(DatasetReader):
         self._map_token_to_hyperbolic_phrases(os.path.join(vocab_dir, 'hyperbolic.txt'))
 
         logger.info('Loading corpus data from %s', corpus_dir)
-        dropped_instances = 0
-        skipped_instances = 0
+        dropped_instances = total_instances = total_sentences = 0
 
-        corpus_file_pattern = os.path.join(corpus_dir, '**/*.txt')
+        corpus_file_pattern = os.path.join(corpus_dir, '*.txt')
         for filename in glob.iglob(corpus_file_pattern, recursive=True):
+            logger.info('Loading corpus data from %s', filename)
             with open(filename) as file:
                 for sentence in file:
+                    yield self.text_to_instance(sentence, 'EUCLID-HYPER-ENCODER-PLACEHOLDER')
                     tokens = self._tokenizer.tokenize(sentence)
-                    instances = [] #TODO: skip or not?
+                    instances = []
+
                     for tok in tokens:
                         if tok.text in self._token2phrases:
                             for phrase in self._token2phrases[tok.text]:
                                 instance = self.text_to_instance(sentence, phrase)
                                 instances.append(instance)
-                    if not instances:
-                        skipped_instances += 1
+                    
                     for instance in instances:
                         if instance.fields['source'].sequence_length() <= self._max_sequence_length:
+                            total_instances += 1
                             yield instance
                         else:
                             dropped_instances += 1
+                    
+                    total_sentences += 1
         
         if not dropped_instances:
             logger.info(f"No instances dropped.")
         else:
             logger.warning(f"Dropped {dropped_instances} instances.")
 
-        if not skipped_instances:
-            logger.info(f"No instances skipped.")
-        else:
-            logger.warning(f"Dropped {skipped_instances} instances.")
-
-        logger.info(f"Loaded corpus from {i} files.")
+        logger.info(f"Total instances: {total_instances}")
+        logger.info(f"Total sentences: {total_sentences}")
+        logger.info(f"Hyperbolic blow up: {total_instances / total_sentences}")
     
     def _map_token_to_hyperbolic_phrases(self, 
                                          phrase_file: str) -> None:
@@ -123,6 +127,11 @@ class UMLSDatasetReader(DatasetReader):
                 tokens = self._tokenizer.tokenize(phrase)
                 for tok in tokens:
                     self._token2phrases[tok.text].append(phrase)
+
+        # TODO: change thresholding to sampling
+        for token in self._token2phrases.copy():
+            if len(self._token2phrases[token]) > self._rare_frequency:
+                self._token2phrases.pop(token)
 
     @overrides
     def text_to_instance(self,  # type: ignore
