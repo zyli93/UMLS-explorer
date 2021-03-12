@@ -19,6 +19,7 @@ class Euc2HypeEncoder(Seq2VecEncoder):
         norm_encoder: Seq2VecEncoder,
         dir_encoder: Seq2VecEncoder
     ):
+        super().__init__()
         self.norm_encoder = norm_encoder
         self.dir_encoder = dir_encoder
         self.fc = nn.Linear(norm_encoder._module.hidden_size, 1)
@@ -32,7 +33,7 @@ class Euc2HypeEncoder(Seq2VecEncoder):
         # (n_batch, d_hyper)
         direction = self.dir_encoder(inputs, mask)
         # (n_batch, 1)
-        dir_norm = LA.norm(direction, dim=1)
+        dir_norm = LA.norm(direction, dim=1, keepdim=True)
         # (n_batch, d_hyper) unit vectors
         direction = direction / dir_norm
 
