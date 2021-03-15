@@ -4,6 +4,9 @@
 # Dataset files
 data/
 
+# experiments
+experiments
+
 # MRHIER filled file
 MRHIER/MRHIER_filled.csv
 
